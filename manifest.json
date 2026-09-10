@@ -1,0 +1,15 @@
+{
+  "name": "টাইপিং শিখি",
+  "short_name": "টাইপিং",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1c1f26",
+  "theme_color": "#ffb454",
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
