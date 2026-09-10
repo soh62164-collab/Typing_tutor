@@ -32,7 +32,14 @@
     --f-rpinky:#a58ae8;
     --f-thumb: #6b7280;
   }
-  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  *{
+    box-sizing:border-box; 
+    margin:0; 
+    padding:0; 
+    -webkit-tap-highlight-color:transparent;
+    -webkit-user-select: none; /* টেকস্ট সিলেক্ট হওয়া রোধ করার জন্য */
+    user-select: none;
+  }
   html,body{height:100%;}
   body{
     background: var(--ink);
