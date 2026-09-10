@@ -326,7 +326,7 @@
     <div id="text-display"></div>
     <div id="finger-hint"></div>
     <div id="keyboard"></div>
-    <input id="hidden-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="none">
+    <input id="hidden-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" readonly>
   </div>
 
   <!-- RESULT OVERLAY -->
@@ -865,12 +865,17 @@ document.getElementById('screen-lesson').addEventListener('click', ()=> input.fo
 // (instead of keydown + input together) avoids the double-count bug where
 // Android's IME layer commits a keystroke separately from the raw keydown,
 // which was causing space presses to register twice.
-// Now that inputmode="none" fully disables the on-screen keyboard, the ONLY
-// input path is the hardware/OTG keyboard. We handle characters exclusively
-// through 'keydown' (the raw physical key, untouched by any IME/predictive
-// engine) and preventDefault so nothing ever reaches the 'input' pipeline —
-// some Android phones run a Bengali/predictive keyboard engine in the
-// background that would otherwise silently alter hardware keystrokes.
+// The hidden input uses readonly (not inputmode="none") to suppress the
+// on-screen keyboard: inputmode="none" was found to also block hardware/OTG
+// character keys inside the PWABuilder-packaged app's WebView (only Space/
+// Enter/Backspace got through). readonly still allows focus() and still
+// dispatches raw keydown events for hardware keyboards, so OTG typing keeps
+// working the same way in both the browser and the packaged app. We handle
+// characters exclusively through 'keydown' (the raw physical key, untouched
+// by any IME/predictive engine) and preventDefault so nothing ever reaches
+// the 'input' pipeline — some Android phones run a Bengali/predictive
+// keyboard engine in the background that would otherwise silently alter
+// hardware keystrokes.
 input.addEventListener('keydown', (e)=>{
   if(!session) return;
   if(e.key === 'Backspace' || e.key === 'Enter' || e.key === 'Tab'){
