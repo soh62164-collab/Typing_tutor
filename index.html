@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-    <link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>টাইপিং শিখি</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffb454">
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
   }
 </script>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>টাইপিং শিখি</title>
 <style>
   :root{
     --ink: #1c1f26;
@@ -33,13 +34,14 @@
     --f-thumb: #6b7280;
   }
   *{
-    box-sizing:border-box; 
-    margin:0; 
-    padding:0; 
+    box-sizing:border-box; margin:0; padding:0;
     -webkit-tap-highlight-color:transparent;
-    -webkit-user-select: none; /* টেকস্ট সিলেক্ট হওয়া রোধ করার জন্য */
-    user-select: none;
+    -webkit-user-select:none;
+    -moz-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
   }
+  body{ overscroll-behavior:none; }
   html,body{height:100%;}
   body{
     background: var(--ink);
@@ -165,13 +167,12 @@
     line-height:1.9;
     letter-spacing:0.5px;
     word-spacing:6px;
-    display: flex;
-    flex-wrap: wrap;
-    max-height: 180px;
-    overflow-y: auto;
-    word-break: break-all;
+    overflow-wrap:break-word;
+    word-break:normal;
+    max-height:150px;
+    overflow-y:auto;
   }
-  #text-display .ch{ color:var(--text-muted); display: inline-block; white-space: pre; }
+  #text-display .ch{ color:var(--text-muted); }
   #text-display .ch.correct{ color:var(--teal); }
   #text-display .ch.wrong{ color:var(--coral); background:rgba(226,102,95,0.18); border-radius:3px; }
   #text-display .ch.current{
@@ -296,10 +297,12 @@
 <body>
 <div id="app">
 
+  <!-- HOME -->
   <div class="screen active" id="screen-home">
     <div id="home-header">
       <h1>টাইপিং শিখি</h1>
       <p>ধাপে ধাপে অনুশীলন করে টাচ-টাইপিং শিখুন — সম্পূর্ণ অফলাইনে</p>
+      <p style="margin-top:6px; color:var(--amber); font-size:12px;">⌨️ OTG কীবোর্ড সংযুক্ত রাখুন — autocorrect এড়াতে ফোনের নিজস্ব ভার্চুয়াল কীবোর্ড বন্ধ রাখা হয়েছে</p>
     </div>
     <div id="stage-list"></div>
     <div id="reset-row">
@@ -307,6 +310,7 @@
     </div>
   </div>
 
+  <!-- LESSON -->
   <div class="screen" id="screen-lesson">
     <div id="lesson-header">
       <button id="back-btn">←</button>
@@ -322,9 +326,10 @@
     <div id="text-display"></div>
     <div id="finger-hint"></div>
     <div id="keyboard"></div>
-    <input id="hidden-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <input id="hidden-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="none">
   </div>
 
+  <!-- RESULT OVERLAY -->
   <div id="result-overlay">
     <div id="result-card">
       <h2 id="result-title">দারুণ হয়েছে!</h2>
@@ -439,6 +444,7 @@ function drillText(newKeys, learnedKeys, wordCount=16){
     let word = '';
     let hasNew = false;
     for(let j=0;j<len;j++){
+      // bias toward including new keys
       const useNew = (!hasNew && j===len-1) || Math.random() < 0.45;
       const src = useNew ? newKeys : all;
       const ch = src[Math.floor(Math.random()*src.length)];
@@ -557,6 +563,7 @@ const STAGES = [
   ]},
 ];
 
+// Build flat ordered list + cumulative learned-keys tracking
 const ALL_LETTERS = ['f','j','d','k','s','l','a',';','g','h','r','u','e','i','w','o','q','p','t','y',
   'v','m','c','n','x',',','z','.','b','/'];
 const FLAT_LESSONS = [];
@@ -661,22 +668,19 @@ function flashPress(ch){
 }
 
 /* ============================================================
-   PROGRESS STORAGE (Using standard localStorage)
+   PROGRESS STORAGE
    ============================================================ */
 const STORAGE_KEY = 'typingtutor:progress';
 let progress = { completed:{}, unlockedIndex:0 };
 
 async function loadProgress(){
   try{
-    const r = localStorage.getItem(STORAGE_KEY);
-    if(r) progress = JSON.parse(r);
+    const r = await window.storage.get(STORAGE_KEY, false);
+    if(r && r.value) progress = JSON.parse(r.value);
   }catch(e){ /* no saved progress yet */ }
 }
-
 async function saveProgress(){
-  try{ 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); 
-  }
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(progress), false); }
   catch(e){ console.error('save failed', e); }
 }
 
@@ -762,7 +766,7 @@ function renderText(){
   for(let i=0;i<session.text.length;i++){
     const span = document.createElement('span');
     span.className = 'ch';
-    span.textContent = session.text[i] === ' ' ? '\u00A0' : session.text[i];
+    span.textContent = session.text[i];
     if(i < session.pos) span.classList.add('correct');
     if(i === session.pos) span.classList.add('current');
     frag.appendChild(span);
@@ -775,13 +779,16 @@ function updateStats(){
   const elapsedMin = elapsedMs / 60000;
   const correctChars = session.totalTyped - session.mistakes;
 
+  // Net WPM = correctly typed characters / 5 / minutes elapsed.
+  // Require at least 1 real second of typing before showing a number,
+  // otherwise the first keystroke produces a wildly inflated spike.
   let wpm = 0;
   if(elapsedMs >= 1000 && correctChars > 0){
     wpm = Math.round((correctChars / 5) / elapsedMin);
   }
 
   const acc = session.totalTyped > 0
-    ? Math.round((correctChars / session.totalTyped) * 1000) / 10  
+    ? Math.round((correctChars / session.totalTyped) * 1000) / 10  // one decimal place
     : 100;
   const pct = Math.round((session.pos / session.text.length) * 100);
 
@@ -793,17 +800,17 @@ function updateStats(){
 
 function handleChar(typed){
   if(!session) return;
+  if(session.pos >= session.text.length) return; // lesson already finished
   if(session.startTime === null) session.startTime = Date.now();
   const expected = session.text[session.pos];
   const span = document.querySelectorAll('#text-display .ch')[session.pos];
-  if (!span) return;
   span.classList.remove('current');
 
   if(typed === expected){
     span.classList.add('correct');
     playKeySound();
   } else {
-    span.classList.add('wrong'); 
+    span.classList.add('wrong'); // stays marked — this position is permanently a mistake
     session.mistakes++;
     playErrorSound();
   }
@@ -817,7 +824,8 @@ function handleChar(typed){
     return;
   }
   const nextSpan = document.querySelectorAll('#text-display .ch')[session.pos];
-  if(nextSpan) nextSpan.classList.add('current');
+  nextSpan.classList.add('current');
+  nextSpan.scrollIntoView({block:'nearest', behavior:'smooth'});
   const nextCh = session.text[session.pos];
   highlightKey(nextCh, 'next');
   const hint = document.getElementById('finger-hint');
@@ -847,29 +855,20 @@ async function finishLesson(){
 }
 
 /* ============================================================
-   INPUT HANDLING
+   INPUT HANDLING (works with any keyboard incl. OTG)
    ============================================================ */
 const input = document.getElementById('hidden-input');
 document.getElementById('screen-lesson').addEventListener('click', ()=> input.focus());
 
-let lastKeydownHandledAt = 0;
-
+// Only Backspace/Enter need blocking at the keydown level — everything else
+// is handled through the single 'input' event below. Using ONE event source
+// (instead of keydown + input together) avoids the double-count bug where
+// Android's IME layer commits a keystroke separately from the raw keydown,
+// which was causing space presses to register twice.
 input.addEventListener('keydown', (e)=>{
   if(!session) return;
-  if(e.key === 'Backspace'){
+  if(e.key === 'Backspace' || e.key === 'Enter'){
     e.preventDefault();
-    return;
-  }
-  if(e.key === ' '){
-    e.preventDefault();
-    lastKeydownHandledAt = Date.now();
-    handleChar(' ');
-    return;
-  }
-  if(e.key.length === 1){
-    e.preventDefault();
-    lastKeydownHandledAt = Date.now();
-    handleChar(e.key.toLowerCase());
   }
 });
 
@@ -877,12 +876,8 @@ input.addEventListener('input', (e)=>{
   if(!session) return;
   const val = input.value;
   input.value = '';
-  if(Date.now() - lastKeydownHandledAt < 150) return; 
-  if(val.length > 0){
-    for(let i = 0; i < val.length; i++){
-      const ch = val[i].toLowerCase();
-      handleChar(ch);
-    }
+  for(const ch of val){
+    handleChar(ch.toLowerCase());
   }
 });
 
@@ -914,13 +909,19 @@ document.getElementById('result-next').addEventListener('click', ()=>{
 
 document.getElementById('reset-btn').addEventListener('click', async ()=>{
   progress = { completed:{}, unlockedIndex:0 };
-  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  try{ await window.storage.delete(STORAGE_KEY, false); }catch(e){}
   renderHome();
 });
 
 /* ============================================================
    INIT
    ============================================================ */
+document.addEventListener('contextmenu', (e)=> e.preventDefault());
+document.addEventListener('selectstart', (e)=>{
+  if(e.target && e.target.id === 'hidden-input') return; // keep the invisible input functional
+  e.preventDefault();
+});
+
 (async function init(){
   renderKeyboard();
   await loadProgress();
