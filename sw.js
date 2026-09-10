@@ -1,7 +1,7 @@
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open('typing-tutor-v1').then((cache) => {
-      return cache.addAll(['./index.html']);
+      return cache.addAll(['./index.html', './manifest.json', './icon-512.png']);
     })
   );
 });
