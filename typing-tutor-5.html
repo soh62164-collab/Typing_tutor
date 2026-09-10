@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>টাইপিং শিখি</title>
+<style>
+  :root{
+    --ink: #1c1f26;
+    --surface: #262b35;
+    --surface-2: #2f3542;
+    --border: #3a4150;
+    --amber: #ffb454;
+    --teal: #5ec9c0;
+    --coral: #e2665f;
+    --text: #eef1f6;
+    --text-muted: #8b93a3;
+
+    --f-lpinky: #e2665f;
+    --f-lring: #f0965a;
+    --f-lmid:  #ffb454;
+    --f-lidx:  #d8d95f;
+    --f-ridx:  #7fd67a;
+    --f-rmid:  #5ec9c0;
+    --f-rring: #6aa8e8;
+    --f-rpinky:#a58ae8;
+    --f-thumb: #6b7280;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    background: var(--ink);
+    color: var(--text);
+    font-family: 'Noto Sans Bengali','Hind Siliguri',system-ui,-apple-system,sans-serif;
+    overflow:hidden;
+  }
+  .mono{ font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+
+  #app{
+    height:100vh;
+    max-width:720px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+
+  /* ===== Screens ===== */
+  .screen{
+    flex:1;
+    display:none;
+    flex-direction:column;
+    overflow-y:auto;
+    min-height:0;
+  }
+  .screen.active{display:flex;}
+
+  /* ===== Home screen ===== */
+  #home-header{
+    padding:22px 18px 14px;
+    flex-shrink:0;
+  }
+  #home-header h1{
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:0.2px;
+  }
+  #home-header p{
+    color:var(--text-muted);
+    font-size:13.5px;
+    margin-top:4px;
+  }
+  #stage-list{
+    flex:1;
+    padding:4px 14px 24px;
+    overflow-y:auto;
+  }
+  .stage-block{margin-bottom:22px;}
+  .stage-title{
+    font-size:12.5px;
+    color:var(--text-muted);
+    padding:0 6px 8px;
+    letter-spacing:0.3px;
+  }
+  .lesson-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:8px;
+    cursor:pointer;
+  }
+  .lesson-row.locked{ opacity:0.45; }
+  .lesson-num{
+    width:32px; height:32px;
+    border-radius:50%;
+    background:var(--surface-2);
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700;
+    flex-shrink:0;
+    color:var(--text-muted);
+  }
+  .lesson-row.done .lesson-num{ background:var(--teal); color:#0a1f1c; }
+  .lesson-row.current .lesson-num{ background:var(--amber); color:#2a1a00; }
+  .lesson-info{flex:1; min-width:0;}
+  .lesson-info .name{font-size:14.5px; font-weight:600;}
+  .lesson-info .keys{font-size:12px; color:var(--text-muted); margin-top:2px;}
+  .lesson-score{font-size:11.5px; color:var(--teal); text-align:right; flex-shrink:0;}
+  .lesson-score .wpm-num{font-size:15px; font-weight:700; display:block;}
+
+  /* ===== Lesson screen ===== */
+  #lesson-header{
+    display:flex; align-items:center; gap:10px;
+    padding:14px 16px;
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  #back-btn{
+    background:none; border:none; color:var(--text);
+    font-size:20px; cursor:pointer; padding:4px 8px;
+  }
+  #sound-btn{
+    background:none; border:none; color:var(--text-muted);
+    font-size:17px; cursor:pointer; padding:4px 6px;
+  }
+  #lesson-header .title{flex:1; font-size:15px; font-weight:600;}
+  #lesson-header .keys-badge{
+    font-size:12px; color:var(--amber);
+    background:rgba(255,180,84,0.12);
+    padding:4px 10px; border-radius:20px;
+  }
+
+  #stats-bar{
+    display:flex; justify-content:space-around;
+    padding:12px 16px;
+    flex-shrink:0;
+  }
+  .stat{text-align:center;}
+  .stat .val{font-size:20px; font-weight:700;}
+  .stat .lbl{font-size:11px; color:var(--text-muted); margin-top:2px;}
+
+  #text-display{
+    flex:0 0 auto;
+    margin:6px 18px 18px;
+    padding:20px;
+    background:var(--surface);
+    border-radius:14px;
+    font-size:22px;
+    line-height:1.9;
+    letter-spacing:0.5px;
+    word-spacing:6px;
+    display: flex;
+    flex-wrap: wrap;
+    max-height: 180px;
+    overflow-y: auto;
+    word-break: break-all;
+  }
+  #text-display .ch{ color:var(--text-muted); display: inline-block; white-space: pre; }
+  #text-display .ch.correct{ color:var(--teal); }
+  #text-display .ch.wrong{ color:var(--coral); background:rgba(226,102,95,0.18); border-radius:3px; }
+  #text-display .ch.current{
+    color:var(--ink);
+    background:var(--amber);
+    border-radius:3px;
+  }
+
+  #hidden-input{
+    position:absolute;
+    opacity:0;
+    height:1px; width:1px;
+    pointer-events:none;
+  }
+
+  #finger-hint{
+    text-align:center;
+    font-size:13px;
+    color:var(--text-muted);
+    margin-bottom:8px;
+    flex-shrink:0;
+    min-height:18px;
+  }
+  #finger-hint b{color:var(--amber);}
+
+  /* ===== Virtual keyboard ===== */
+  #keyboard{
+    flex-shrink:0;
+    padding:8px 10px 20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+  }
+  .kb-row{ display:flex; gap:6px; }
+  .key{
+    height:38px;
+    min-width:30px;
+    border-radius:7px;
+    background:var(--surface-2);
+    border-bottom:3px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px;
+    color:var(--text-muted);
+    flex:1;
+    transition: transform .06s;
+    position:relative;
+  }
+  .key.w-1_5{flex:1.5;}
+  .key.w-1_75{flex:1.75;}
+  .key.w-2{flex:2;}
+  .key.w-2_25{flex:2.25;}
+  .key.w-6{flex:6;}
+  .key.next{
+    background:var(--amber);
+    color:#2a1a00;
+    border-bottom-color:#c98d38;
+  }
+  .key.pressed{ transform: translateY(2px); border-bottom-width:1px; }
+  .key.home-dot::after{
+    content:'';
+    position:absolute; bottom:5px;
+    width:4px; height:4px; border-radius:50%;
+    background:currentColor; opacity:0.5;
+  }
+
+  /* ===== Result overlay ===== */
+  #result-overlay{
+    position:absolute; inset:0;
+    background:rgba(15,17,22,0.92);
+    display:none;
+    align-items:center; justify-content:center;
+    padding:24px;
+    z-index:20;
+  }
+  #result-overlay.open{display:flex;}
+  #result-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:28px 24px;
+    text-align:center;
+    width:100%;
+    max-width:340px;
+  }
+  #result-card h2{font-size:19px; margin-bottom:18px;}
+  #result-stats{
+    display:flex; justify-content:space-around;
+    margin-bottom:22px;
+  }
+  #result-stats .big{font-size:30px; font-weight:700; color:var(--amber);}
+  #result-stats .lbl{font-size:12px; color:var(--text-muted); margin-top:4px;}
+  .btn{
+    display:block; width:100%;
+    padding:13px;
+    border-radius:11px;
+    border:none;
+    font-size:15px; font-weight:600;
+    cursor:pointer;
+    margin-bottom:10px;
+    font-family:inherit;
+  }
+  .btn.primary{ background:var(--amber); color:#2a1a00; }
+  .btn.ghost{ background:none; color:var(--text-muted); border:1px solid var(--border); }
+
+  #reset-row{
+    padding:16px 18px 26px;
+    flex-shrink:0;
+  }
+  #reset-btn{
+    width:100%;
+    padding:11px;
+    border-radius:10px;
+    background:none;
+    border:1px solid var(--border);
+    color:var(--coral);
+    font-size:13px;
+    font-family:inherit;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="screen active" id="screen-home">
+    <div id="home-header">
+      <h1>টাইপিং শিখি</h1>
+      <p>ধাপে ধাপে অনুশীলন করে টাচ-টাইপিং শিখুন — সম্পূর্ণ অফলাইনে</p>
+    </div>
+    <div id="stage-list"></div>
+    <div id="reset-row">
+      <button id="reset-btn">সব অগ্রগতি মুছে নতুন করে শুরু করুন</button>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-lesson">
+    <div id="lesson-header">
+      <button id="back-btn">←</button>
+      <div class="title" id="lesson-title">লেসন</div>
+      <button id="sound-btn">🔊</button>
+      <div class="keys-badge" id="lesson-keys-badge"></div>
+    </div>
+    <div id="stats-bar">
+      <div class="stat"><div class="val" id="stat-wpm">0</div><div class="lbl">WPM</div></div>
+      <div class="stat"><div class="val" id="stat-acc">100%</div><div class="lbl">নির্ভুলতা</div></div>
+      <div class="stat"><div class="val" id="stat-progress">0%</div><div class="lbl">শেষ</div></div>
+    </div>
+    <div id="text-display"></div>
+    <div id="finger-hint"></div>
+    <div id="keyboard"></div>
+    <input id="hidden-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+  </div>
+
+  <div id="result-overlay">
+    <div id="result-card">
+      <h2 id="result-title">দারুণ হয়েছে!</h2>
+      <div id="result-stats">
+        <div><div class="big" id="result-wpm">0</div><div class="lbl">WPM</div></div>
+        <div><div class="big" id="result-acc">0%</div><div class="lbl">নির্ভুলতা</div></div>
+      </div>
+      <button class="btn primary" id="result-next">পরের লেসন</button>
+      <button class="btn ghost" id="result-retry">আবার চেষ্টা করুন</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   SOUND EFFECTS (synthesized, fully offline — no audio files)
+   ============================================================ */
+let audioCtx = null;
+let soundOn = true;
+
+function ensureAudio(){
+  if(!audioCtx){
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(Ctx) audioCtx = new Ctx();
+  }
+  if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function beep(freq, duration, type, vol){
+  if(!soundOn) return;
+  ensureAudio();
+  if(!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.value = vol;
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  gain.gain.setValueAtTime(vol, now);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  osc.start(now);
+  osc.stop(now + duration);
+}
+
+function playKeySound(){ beep(680, 0.06, 'sine', 0.28); }
+function playErrorSound(){
+  beep(190, 0.14, 'square', 0.32);
+  setTimeout(()=>beep(140, 0.16, 'square', 0.28), 60);
+}
+function playCompleteSound(){
+  beep(520, 0.1, 'sine', 0.26);
+  setTimeout(()=>beep(780, 0.18, 'sine', 0.26), 100);
+}
+
+document.getElementById('sound-btn').addEventListener('click', ()=>{
+  soundOn = !soundOn;
+  document.getElementById('sound-btn').textContent = soundOn ? '🔊' : '🔇';
+  if(soundOn) ensureAudio();
+});
+
+/* ============================================================
+   WORD BANK — filtered by learned letters for word-based lessons
+   ============================================================ */
+const WORD_BANK = ["a","as","ask","fall","flag","glass","half","gas","salad","alfalfa",
+"jak","hall","dad","fad","dash","flash","gash","adds","gladdash","dagj",
+"add","lad","sad","had","glad","flask","gala","fashkl","kjshdl",
+"is","kid","disk","silk","hills","skid","slid","kills","jail","did","dill","sill","kid",
+"or","for","fort","fro","door","poor","word","world","port","form","forgo","sport",
+"go","got","top","stop","post","spot","frost","rot","dot","lot","tot","opt",
+"if","fit","sift","list","first","gift","shift","salt","last","fast","glass",
+"we","wet","new","dew","few","stew","were","west","test","rest","best","tests",
+"row","tow","yow","try","toy","tory","story","sort","sorry","worry","hurry","curry",
+"the","this","that","they","them","then","with","have","been","from","which","would",
+"cat","dog","run","fun","sun","bug","bus","cup","cut","hut","gun","nut","hug","bun",
+"box","fox","mix","fix","six","wax","tax","vex","zip","zoo","van","zone","xray",
+"be","by","my","no","so","to","up","us","in","on","it","at","he","we","do","go",
+"very","many","much","some","time","year","work","life","world","hand","part","child",
+"back","call","came","come","give","hand","help","home","keep","kind","know","land",
+"large","last","late","leave","level","light","little","live","local","long","look",
+"made","make","many","mark","matter","mean","might","mind","more","most","move","must",
+"name","near","need","never","next","night","north","note","number","often","only",
+"open","order","other","over","own","page","paper","part","people","place","plan",
+"point","possible","present","problem","program","public","question","really",
+"reason","right","room","same","school","seem","several","short","should",
+"show","side","since","small","social","something","sound","south","state",
+"still","story","student","study","such","sure","system","take","talk","team",
+"tell","thing","think","those","thought","three","through","today","together",
+"turn","under","until","upon","used","using","value","voice","wait","walk",
+"want","water","week","well","went","were","what","when","where","whether",
+"while","white","whole","without","word","world","would","write","young","zero"];
+
+function wordsUsingOnly(letters, count, minLen=2, maxLen=6){
+  const set = new Set(letters);
+  const pool = WORD_BANK.filter(w => w.length>=minLen && w.length<=maxLen &&
+    [...w].every(ch => set.has(ch)));
+  const out = [];
+  if(pool.length === 0) return null;
+  for(let i=0;i<count;i++){
+    out.push(pool[Math.floor(Math.random()*pool.length)]);
+  }
+  return out.join(' ');
+}
+
+function drillText(newKeys, learnedKeys, wordCount=16){
+  const all = [...new Set([...learnedKeys, ...newKeys])];
+  const out = [];
+  for(let i=0;i<wordCount;i++){
+    const len = 2 + Math.floor(Math.random()*3); // 2-4 chars
+    let word = '';
+    let hasNew = false;
+    for(let j=0;j<len;j++){
+      const useNew = (!hasNew && j===len-1) || Math.random() < 0.45;
+      const src = useNew ? newKeys : all;
+      const ch = src[Math.floor(Math.random()*src.length)];
+      if(newKeys.includes(ch)) hasNew = true;
+      word += ch;
+    }
+    out.push(word);
+  }
+  return out.join(' ');
+}
+
+function numberDrill(digits, count=14){
+  const out = [];
+  for(let i=0;i<count;i++){
+    const len = 2 + Math.floor(Math.random()*2);
+    let n='';
+    for(let j=0;j<len;j++) n += digits[Math.floor(Math.random()*digits.length)];
+    out.push(n);
+  }
+  return out.join(' ');
+}
+
+function sentenceDrill(letters, count=6){
+  const words = wordsUsingOnly(letters, count*5, 2, 7);
+  if(!words) return null;
+  const arr = words.split(' ');
+  const sentences = [];
+  for(let i=0;i<count;i++){
+    const len = 3 + Math.floor(Math.random()*3);
+    const chunk = arr.splice(0, len);
+    if(chunk.length===0) break;
+    let s = chunk.join(' ');
+    s = s.charAt(0).toUpperCase() + s.slice(1) + '.';
+    sentences.push(s);
+  }
+  return sentences.join(' ');
+}
+
+function wordListWithPunct(letters, count=32){
+  const words = wordsUsingOnly(letters, count, 2, 7);
+  if(!words) return null;
+  const arr = words.split(' ');
+  const out = [];
+  for(let i=0;i<arr.length;i++){
+    const isLastOfGroup = (i+1) % 6 === 0 || i === arr.length-1;
+    out.push(arr[i] + (isLastOfGroup ? '.' : ','));
+  }
+  return out.join(' ');
+}
+
+function paragraphDrill(letters, sentenceCount=10){
+  return sentenceDrill(letters, sentenceCount);
+}
+
+/* ============================================================
+   LESSON CURRICULUM
+   ============================================================ */
+const STAGES = [
+  { title:"হোম রো", lessons:[
+    { id:'h1', name:'F ও J চেনা', newKeys:['f','j'], type:'drill' },
+    { id:'h2', name:'D ও K যোগ করুন', newKeys:['d','k'], type:'drill' },
+    { id:'h3', name:'S ও L যোগ করুন', newKeys:['s','l'], type:'drill' },
+    { id:'h4', name:'A ও ; যোগ করুন', newKeys:['a',';'], type:'drill' },
+    { id:'h5', name:'G ও H যোগ করুন', newKeys:['g','h'], type:'drill' },
+    { id:'h6', name:'হোম রো — শব্দ অনুশীলন', newKeys:[], type:'words' },
+  ]},
+  { title:"টপ রো", lessons:[
+    { id:'t1', name:'R ও U যোগ করুন', newKeys:['r','u'], type:'drill' },
+    { id:'t2', name:'E ও I যোগ করুন', newKeys:['e','i'], type:'drill' },
+    { id:'t3', name:'W ও O যোগ করুন', newKeys:['w','o'], type:'drill' },
+    { id:'t4', name:'Q ও P যোগ করুন', newKeys:['q','p'], type:'drill' },
+    { id:'t5', name:'T ও Y যোগ করুন', newKeys:['t','y'], type:'drill' },
+    { id:'t6', name:'টপ ও হোম রো — শব্দ', newKeys:[], type:'words' },
+  ]},
+  { title:"বটম রো", lessons:[
+    { id:'b1', name:'V ও M যোগ করুন', newKeys:['v','m'], type:'drill' },
+    { id:'b2', name:'C ও N যোগ করুন', newKeys:['c','n'], type:'drill' },
+    { id:'b3', name:'X ও , যোগ করুন', newKeys:['x',','], type:'drill' },
+    { id:'b4', name:'Z ও . যোগ করুন', newKeys:['z','.'], type:'drill' },
+    { id:'b5', name:'B ও / যোগ করুন', newKeys:['b','/'], type:'drill' },
+    { id:'b6', name:'সম্পূর্ণ বর্ণমালা — শব্দ', newKeys:[], type:'words' },
+  ]},
+  { title:"সংখ্যা", lessons:[
+    { id:'n1', name:'সংখ্যা ১-৫', newKeys:['1','2','3','4','5'], type:'numbers' },
+    { id:'n2', name:'সংখ্যা ৬-০', newKeys:['6','7','8','9','0'], type:'numbers' },
+  ]},
+  { title:"শব্দ-তালিকা অনুশীলন (স্পেস, কমা, ফুলস্টপ সহ)", lessons:[
+    { id:'wl1', name:'শব্দ-তালিকা ১', newKeys:[], type:'wordlist' },
+    { id:'wl2', name:'শব্দ-তালিকা ২', newKeys:[], type:'wordlist' },
+    { id:'wl3', name:'শব্দ-তালিকা ৩', newKeys:[], type:'wordlist' },
+    { id:'wl4', name:'শব্দ-তালিকা ৪', newKeys:[], type:'wordlist' },
+    { id:'wl5', name:'শব্দ-তালিকা ৫', newKeys:[], type:'wordlist' },
+    { id:'wl6', name:'শব্দ-তালিকা ৬', newKeys:[], type:'wordlist' },
+    { id:'wl7', name:'শব্দ-তালিকা ৭', newKeys:[], type:'wordlist' },
+    { id:'wl8', name:'শব্দ-তালিকা ৮', newKeys:[], type:'wordlist' },
+  ]},
+  { title:"বাক্য অনুশীলন", lessons:[
+    { id:'s1', name:'বাক্য অনুশীলন ১', newKeys:[], type:'sentence' },
+    { id:'s2', name:'বাক্য অনুশীলন ২', newKeys:[], type:'sentence' },
+    { id:'s3', name:'বাক্য অনুশীলন ৩', newKeys:[], type:'sentence' },
+    { id:'s4', name:'বাক্য অনুশীলন ৪', newKeys:[], type:'sentence' },
+    { id:'s5', name:'বাক্য অনুশীলন ৫', newKeys:[], type:'sentence' },
+    { id:'s6', name:'বাক্য অনুশীলন ৬', newKeys:[], type:'sentence' },
+    { id:'s7', name:'বাক্য অনুশীলন ৭', newKeys:[], type:'sentence' },
+    { id:'s8', name:'বাক্য অনুশীলন ৮', newKeys:[], type:'sentence' },
+  ]},
+  { title:"প্যারাগ্রাফ অনুশীলন", lessons:[
+    { id:'p1', name:'প্যারাগ্রাফ ১', newKeys:[], type:'paragraph' },
+    { id:'p2', name:'প্যারাগ্রাফ ২', newKeys:[], type:'paragraph' },
+    { id:'p3', name:'প্যারাগ্রাফ ৩', newKeys:[], type:'paragraph' },
+    { id:'p4', name:'প্যারাগ্রাফ ৪', newKeys:[], type:'paragraph' },
+    { id:'p5', name:'প্যারাগ্রাফ ৫', newKeys:[], type:'paragraph' },
+    { id:'p6', name:'প্যারাগ্রাফ ৬', newKeys:[], type:'paragraph' },
+    { id:'p7', name:'প্যারাগ্রাফ ৭', newKeys:[], type:'paragraph' },
+    { id:'p8', name:'প্যারাগ্রাফ ৮', newKeys:[], type:'paragraph' },
+  ]},
+];
+
+const ALL_LETTERS = ['f','j','d','k','s','l','a',';','g','h','r','u','e','i','w','o','q','p','t','y',
+  'v','m','c','n','x',',','z','.','b','/'];
+const FLAT_LESSONS = [];
+(function build(){
+  let learned = [];
+  STAGES.forEach(stage=>{
+    stage.lessons.forEach(lsn=>{
+      lsn.learnedBefore = [...learned];
+      if(lsn.newKeys && lsn.type==='drill') learned = [...learned, ...lsn.newKeys];
+      if(['words','sentence','wordlist','paragraph'].includes(lsn.type)) lsn.newKeys = [...lsn.learnedBefore];
+      FLAT_LESSONS.push(lsn);
+    });
+  });
+})();
+
+function generateLessonText(lsn){
+  if(lsn.type==='drill'){
+    return drillText(lsn.newKeys, lsn.learnedBefore.length ? lsn.learnedBefore : lsn.newKeys);
+  }
+  if(lsn.type==='words'){
+    return wordsUsingOnly(lsn.newKeys, 24) || drillText(lsn.newKeys, lsn.newKeys);
+  }
+  if(lsn.type==='numbers'){
+    return numberDrill(lsn.newKeys);
+  }
+  if(lsn.type==='sentence'){
+    return sentenceDrill(lsn.newKeys, 6) || wordsUsingOnly(lsn.newKeys, 24);
+  }
+  if(lsn.type==='wordlist'){
+    return wordListWithPunct(lsn.newKeys, 34) || wordsUsingOnly(lsn.newKeys, 24);
+  }
+  if(lsn.type==='paragraph'){
+    return paragraphDrill(lsn.newKeys, 10) || sentenceDrill(lsn.newKeys, 6);
+  }
+  return '';
+}
+
+/* ============================================================
+   KEYBOARD LAYOUT + FINGER MAP
+   ============================================================ */
+const FINGER_MAP = {
+  '`':'lpinky','1':'lpinky','q':'lpinky','a':'lpinky','z':'lpinky',
+  '2':'lring','w':'lring','s':'lring','x':'lring',
+  '3':'lmid','e':'lmid','d':'lmid','c':'lmid',
+  '4':'lidx','5':'lidx','r':'lidx','t':'lidx','f':'lidx','g':'lidx','v':'lidx','b':'lidx',
+  '6':'ridx','7':'ridx','y':'ridx','u':'ridx','h':'ridx','j':'ridx','n':'ridx','m':'ridx',
+  '8':'rmid','i':'rmid','k':'rmid',',':'rmid',
+  '9':'rring','o':'rring','l':'rring','.':'rring',
+  '0':'rpinky','-':'rpinky','p':'rpinky',';':'rpinky','/':'rpinky','[':'rpinky',']':'rpinky',
+  "'":'rpinky','\\':'rpinky',
+  ' ':'thumb'
+};
+const FINGER_NAME = {
+  lpinky:'বাম কনিষ্ঠা', lring:'বাম অনামিকা', lmid:'বাম মধ্যমা', lidx:'বাম তর্জনী',
+  ridx:'ডান তর্জনী', rmid:'ডান মধ্যমা', rring:'ডান অনামিকা', rpinky:'ডান কনিষ্ঠা', thumb:'বৃদ্ধাঙ্গুলি'
+};
+
+const KB_ROWS = [
+  [['1',1],['2',1],['3',1],['4',1],['5',1],['6',1],['7',1],['8',1],['9',1],['0',1]],
+  [['q',1],['w',1],['e',1],['r',1],['t',1],['y',1],['u',1],['i',1],['o',1],['p',1]],
+  [['a',1],['s',1],['d',1],['f',1],['g',1],['h',1],['j',1],['k',1],['l',1],[';',1]],
+  [['z',1],['x',1],['c',1],['v',1],['b',1],['n',1],['m',1],[',',1],['.',1],['/',1]],
+  [[' ',6]]
+];
+const HOME_KEYS = new Set(['f','j']);
+
+function renderKeyboard(){
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  KB_ROWS.forEach(row=>{
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    row.forEach(([ch,w])=>{
+      const keyEl = document.createElement('div');
+      keyEl.className = 'key';
+      if(w===6) keyEl.classList.add('w-6');
+      keyEl.dataset.key = ch;
+      keyEl.textContent = ch===' ' ? '' : ch;
+      keyEl.style.color = 'var(--f-'+FINGER_MAP[ch]+')';
+      if(HOME_KEYS.has(ch)) keyEl.classList.add('home-dot');
+      rowEl.appendChild(keyEl);
+    });
+    kb.appendChild(rowEl);
+  });
+}
+
+function highlightKey(ch, cls){
+  document.querySelectorAll('.key.next').forEach(k=>k.classList.remove('next'));
+  if(!ch) return;
+  const target = ch===' ' ? ' ' : ch.toLowerCase();
+  const el = [...document.querySelectorAll('.key')].find(k => k.dataset.key === target);
+  if(el) el.classList.add(cls);
+}
+
+function flashPress(ch){
+  const target = ch===' ' ? ' ' : ch.toLowerCase();
+  const el = [...document.querySelectorAll('.key')].find(k => k.dataset.key === target);
+  if(el){
+    el.classList.add('pressed');
+    setTimeout(()=>el.classList.remove('pressed'), 90);
+  }
+}
+
+/* ============================================================
+   PROGRESS STORAGE (Using standard localStorage)
+   ============================================================ */
+const STORAGE_KEY = 'typingtutor:progress';
+let progress = { completed:{}, unlockedIndex:0 };
+
+async function loadProgress(){
+  try{
+    const r = localStorage.getItem(STORAGE_KEY);
+    if(r) progress = JSON.parse(r);
+  }catch(e){ /* no saved progress yet */ }
+}
+
+async function saveProgress(){
+  try{ 
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); 
+  }
+  catch(e){ console.error('save failed', e); }
+}
+
+/* ============================================================
+   HOME SCREEN RENDER
+   ============================================================ */
+function renderHome(){
+  const list = document.getElementById('stage-list');
+  list.innerHTML = '';
+  let flatIndex = 0;
+  STAGES.forEach(stage=>{
+    const block = document.createElement('div');
+    block.className = 'stage-block';
+    const t = document.createElement('div');
+    t.className = 'stage-title';
+    t.textContent = stage.title;
+    block.appendChild(t);
+
+    stage.lessons.forEach(lsn=>{
+      const idx = flatIndex++;
+      const row = document.createElement('div');
+      const done = progress.completed[lsn.id];
+      const locked = idx > progress.unlockedIndex;
+      const current = idx === progress.unlockedIndex && !done;
+      row.className = 'lesson-row' + (locked?' locked':'') + (done?' done':'') + (current?' current':'');
+      let subtitle;
+      if(lsn.type === 'drill') subtitle = 'নতুন কী: ' + lsn.newKeys.join(' ').toUpperCase();
+      else if(lsn.type === 'numbers') subtitle = 'সংখ্যা: ' + lsn.newKeys.join(' ');
+      else if(lsn.type === 'words') subtitle = 'শব্দ অনুশীলন';
+      else if(lsn.type === 'wordlist') subtitle = 'শব্দ-তালিকা (স্পেস, কমা, ফুলস্টপ)';
+      else if(lsn.type === 'sentence') subtitle = 'পূর্ণ বাক্য অনুশীলন';
+      else if(lsn.type === 'paragraph') subtitle = 'প্যারাগ্রাফ অনুশীলন';
+      else subtitle = 'অনুশীলন';
+      row.innerHTML = `
+        <div class="lesson-num">${done ? '✓' : (idx+1)}</div>
+        <div class="lesson-info">
+          <div class="name">${lsn.name}</div>
+          <div class="keys">${subtitle}</div>
+        </div>
+        ${done ? `<div class="lesson-score"><span class="wpm-num">${done.wpm}</span>WPM</div>` : ''}
+      `;
+      if(!locked){
+        row.addEventListener('click', ()=> openLesson(idx));
+      }
+      block.appendChild(row);
+    });
+    list.appendChild(block);
+  });
+}
+
+/* ============================================================
+   LESSON RUNTIME
+   ============================================================ */
+let session = null;
+
+function openLesson(idx){
+  const lsn = FLAT_LESSONS[idx];
+  const text = generateLessonText(lsn) || 'the quick brown fox';
+  session = {
+    idx, lsn, text,
+    pos:0, mistakes:0, totalTyped:0,
+    startTime:null,
+  };
+  document.getElementById('lesson-title').textContent = lsn.name;
+  document.getElementById('lesson-keys-badge').textContent =
+    lsn.newKeys.length && lsn.newKeys.length<=6 ? lsn.newKeys.join(' ').toUpperCase() : '';
+  renderText();
+  updateStats();
+  showScreen('screen-lesson');
+  const hint = document.getElementById('finger-hint');
+  const nextCh = session.text[0];
+  hint.innerHTML = `পরের কী চাপুন: <b>${nextCh===' '?'স্পেস':nextCh.toUpperCase()}</b> — ${FINGER_NAME[FINGER_MAP[nextCh.toLowerCase()]||'thumb']}`;
+  highlightKey(nextCh, 'next');
+  const input = document.getElementById('hidden-input');
+  input.value = '';
+  setTimeout(()=>input.focus(), 50);
+}
+
+function renderText(){
+  const disp = document.getElementById('text-display');
+  disp.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  for(let i=0;i<session.text.length;i++){
+    const span = document.createElement('span');
+    span.className = 'ch';
+    span.textContent = session.text[i] === ' ' ? '\u00A0' : session.text[i];
+    if(i < session.pos) span.classList.add('correct');
+    if(i === session.pos) span.classList.add('current');
+    frag.appendChild(span);
+  }
+  disp.appendChild(frag);
+}
+
+function updateStats(){
+  const elapsedMs = session.startTime ? (Date.now() - session.startTime) : 0;
+  const elapsedMin = elapsedMs / 60000;
+  const correctChars = session.totalTyped - session.mistakes;
+
+  let wpm = 0;
+  if(elapsedMs >= 1000 && correctChars > 0){
+    wpm = Math.round((correctChars / 5) / elapsedMin);
+  }
+
+  const acc = session.totalTyped > 0
+    ? Math.round((correctChars / session.totalTyped) * 1000) / 10  
+    : 100;
+  const pct = Math.round((session.pos / session.text.length) * 100);
+
+  document.getElementById('stat-wpm').textContent = wpm;
+  document.getElementById('stat-acc').textContent = acc + '%';
+  document.getElementById('stat-progress').textContent = pct + '%';
+  return {wpm, acc};
+}
+
+function handleChar(typed){
+  if(!session) return;
+  if(session.startTime === null) session.startTime = Date.now();
+  const expected = session.text[session.pos];
+  const span = document.querySelectorAll('#text-display .ch')[session.pos];
+  if (!span) return;
+  span.classList.remove('current');
+
+  if(typed === expected){
+    span.classList.add('correct');
+    playKeySound();
+  } else {
+    span.classList.add('wrong'); 
+    session.mistakes++;
+    playErrorSound();
+  }
+  session.totalTyped++;
+  session.pos++;
+  flashPress(typed);
+
+  if(session.pos >= session.text.length){
+    updateStats();
+    finishLesson();
+    return;
+  }
+  const nextSpan = document.querySelectorAll('#text-display .ch')[session.pos];
+  if(nextSpan) nextSpan.classList.add('current');
+  const nextCh = session.text[session.pos];
+  highlightKey(nextCh, 'next');
+  const hint = document.getElementById('finger-hint');
+  hint.innerHTML = `পরের কী চাপুন: <b>${nextCh===' '?'স্পেস':nextCh.toUpperCase()}</b> — ${FINGER_NAME[FINGER_MAP[nextCh.toLowerCase()]||'thumb']}`;
+  updateStats();
+}
+
+async function finishLesson(){
+  playCompleteSound();
+  const {wpm, acc} = updateStats();
+  const prev = progress.completed[session.lsn.id];
+  if(!prev || wpm > prev.wpm){
+    progress.completed[session.lsn.id] = {wpm, acc, date:Date.now()};
+  }
+  if(session.idx >= progress.unlockedIndex && session.idx+1 <= FLAT_LESSONS.length){
+    progress.unlockedIndex = Math.max(progress.unlockedIndex, session.idx+1);
+  }
+  await saveProgress();
+
+  document.getElementById('result-wpm').textContent = wpm;
+  document.getElementById('result-acc').textContent = acc + '%';
+  document.getElementById('result-title').textContent =
+    acc >= 95 ? 'চমৎকার হয়েছে! 🎉' : (acc >= 80 ? 'ভালো হয়েছে!' : 'আরেকবার চেষ্টা করলে ভালো হবে');
+  document.getElementById('result-next').style.display =
+    session.idx+1 < FLAT_LESSONS.length ? 'block' : 'none';
+  document.getElementById('result-overlay').classList.add('open');
+}
+
+/* ============================================================
+   INPUT HANDLING
+   ============================================================ */
+const input = document.getElementById('hidden-input');
+document.getElementById('screen-lesson').addEventListener('click', ()=> input.focus());
+
+let lastKeydownHandledAt = 0;
+
+input.addEventListener('keydown', (e)=>{
+  if(!session) return;
+  if(e.key === 'Backspace'){
+    e.preventDefault();
+    return;
+  }
+  if(e.key === ' '){
+    e.preventDefault();
+    lastKeydownHandledAt = Date.now();
+    handleChar(' ');
+    return;
+  }
+  if(e.key.length === 1){
+    e.preventDefault();
+    lastKeydownHandledAt = Date.now();
+    handleChar(e.key.toLowerCase());
+  }
+});
+
+input.addEventListener('input', (e)=>{
+  if(!session) return;
+  const val = input.value;
+  input.value = '';
+  if(Date.now() - lastKeydownHandledAt < 150) return; 
+  if(val.length > 0){
+    for(let i = 0; i < val.length; i++){
+      const ch = val[i].toLowerCase();
+      handleChar(ch);
+    }
+  }
+});
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+document.getElementById('back-btn').addEventListener('click', ()=>{
+  session = null;
+  document.getElementById('result-overlay').classList.remove('open');
+  renderHome();
+  showScreen('screen-home');
+});
+
+document.getElementById('result-retry').addEventListener('click', ()=>{
+  document.getElementById('result-overlay').classList.remove('open');
+  openLesson(session.idx);
+});
+
+document.getElementById('result-next').addEventListener('click', ()=>{
+  document.getElementById('result-overlay').classList.remove('open');
+  const nextIdx = session.idx+1;
+  if(nextIdx < FLAT_LESSONS.length) openLesson(nextIdx);
+});
+
+document.getElementById('reset-btn').addEventListener('click', async ()=>{
+  progress = { completed:{}, unlockedIndex:0 };
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  renderHome();
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(async function init(){
+  renderKeyboard();
+  await loadProgress();
+  renderHome();
+})();
+</script>
+</body>
+</html>
