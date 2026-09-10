@@ -397,8 +397,8 @@ document.getElementById('sound-btn').addEventListener('click', ()=>{
    WORD BANK — filtered by learned letters for word-based lessons
    ============================================================ */
 const WORD_BANK = ["a","as","ask","fall","flag","glass","half","gas","salad","alfalfa",
-"jak","hall","dad","fad","dash","flash","gash","adds","gladdash","dagj",
-"add","lad","sad","had","glad","flask","gala","fashkl","kjshdl",
+"jak","hall","dad","fad","dash","flash","gash","adds","flags","hags",
+"add","lad","sad","had","glad","flask","gala","sags","lash",
 "is","kid","disk","silk","hills","skid","slid","kills","jail","did","dill","sill","kid",
 "or","for","fort","fro","door","poor","word","world","port","form","forgo","sport",
 "go","got","top","stop","post","spot","frost","rot","dot","lot","tot","opt",
@@ -675,12 +675,12 @@ let progress = { completed:{}, unlockedIndex:0 };
 
 async function loadProgress(){
   try{
-    const r = await window.storage.get(STORAGE_KEY, false);
-    if(r && r.value) progress = JSON.parse(r.value);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) progress = JSON.parse(raw);
   }catch(e){ /* no saved progress yet */ }
 }
 async function saveProgress(){
-  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(progress), false); }
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); }
   catch(e){ console.error('save failed', e); }
 }
 
@@ -916,7 +916,7 @@ document.getElementById('result-next').addEventListener('click', ()=>{
 
 document.getElementById('reset-btn').addEventListener('click', async ()=>{
   progress = { completed:{}, unlockedIndex:0 };
-  try{ await window.storage.delete(STORAGE_KEY, false); }catch(e){}
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
   renderHome();
 });
 
