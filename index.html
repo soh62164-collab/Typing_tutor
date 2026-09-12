@@ -756,7 +756,7 @@ function openLesson(idx){
   highlightKey(nextCh, 'next');
   const input = document.getElementById('hidden-input');
   input.value = '';
-  setTimeout(()=>input.focus(), 50);
+  setTimeout(focusInputSafely, 50);
 }
 
 function renderText(){
@@ -858,24 +858,34 @@ async function finishLesson(){
    INPUT HANDLING (works with any keyboard incl. OTG)
    ============================================================ */
 const input = document.getElementById('hidden-input');
-document.getElementById('screen-lesson').addEventListener('click', ()=> input.focus());
+
+// Focus the hidden input WITHOUT popping Android's software keyboard.
+// We no longer use inputmode="none" for this, because on many Android
+// devices that attribute also makes the IME swallow hardware/OTG letter
+// keystrokes (only Space/Backspace/Enter got through). Instead we keep
+// the field readonly until the instant after it's focused, then remove
+// readonly — focusing a readonly field never triggers the soft keyboard,
+// but once focus is already established the field accepts a normal
+// (unrestricted) InputConnection, so OTG hardware keys all work.
+function focusInputSafely(){
+  input.setAttribute('readonly', 'readonly');
+  input.focus();
+  setTimeout(()=> input.removeAttribute('readonly'), 100);
+}
+
+document.getElementById('screen-lesson').addEventListener('click', focusInputSafely);
 
 // Only Backspace/Enter need blocking at the keydown level — everything else
 // is handled through the single 'input' event below. Using ONE event source
 // (instead of keydown + input together) avoids the double-count bug where
 // Android's IME layer commits a keystroke separately from the raw keydown,
 // which was causing space presses to register twice.
-// The hidden input uses readonly (not inputmode="none") to suppress the
-// on-screen keyboard: inputmode="none" was found to also block hardware/OTG
-// character keys inside the PWABuilder-packaged app's WebView (only Space/
-// Enter/Backspace got through). readonly still allows focus() and still
-// dispatches raw keydown events for hardware keyboards, so OTG typing keeps
-// working the same way in both the browser and the packaged app. We handle
-// characters exclusively through 'keydown' (the raw physical key, untouched
-// by any IME/predictive engine) and preventDefault so nothing ever reaches
-// the 'input' pipeline — some Android phones run a Bengali/predictive
-// keyboard engine in the background that would otherwise silently alter
-// hardware keystrokes.
+// Now that inputmode="none" fully disables the on-screen keyboard, the ONLY
+// input path is the hardware/OTG keyboard. We handle characters exclusively
+// through 'keydown' (the raw physical key, untouched by any IME/predictive
+// engine) and preventDefault so nothing ever reaches the 'input' pipeline —
+// some Android phones run a Bengali/predictive keyboard engine in the
+// background that would otherwise silently alter hardware keystrokes.
 input.addEventListener('keydown', (e)=>{
   if(!session) return;
   if(e.key === 'Backspace' || e.key === 'Enter' || e.key === 'Tab'){
