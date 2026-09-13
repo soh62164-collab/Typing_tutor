@@ -181,13 +181,6 @@
     border-radius:3px;
   }
 
-  #hidden-input{
-    position:absolute;
-    opacity:0;
-    height:1px; width:1px;
-    pointer-events:none;
-  }
-
   #finger-hint{
     text-align:center;
     font-size:13px;
@@ -326,7 +319,6 @@
     <div id="text-display"></div>
     <div id="finger-hint"></div>
     <div id="keyboard"></div>
-    <input id="hidden-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" readonly>
   </div>
 
   <!-- RESULT OVERLAY -->
@@ -754,9 +746,6 @@ function openLesson(idx){
   const nextCh = session.text[0];
   hint.innerHTML = `পরের কী চাপুন: <b>${nextCh===' '?'স্পেস':nextCh.toUpperCase()}</b> — ${FINGER_NAME[FINGER_MAP[nextCh.toLowerCase()]||'thumb']}`;
   highlightKey(nextCh, 'next');
-  const input = document.getElementById('hidden-input');
-  input.value = '';
-  setTimeout(focusInputSafely, 50);
 }
 
 function renderText(){
@@ -857,36 +846,22 @@ async function finishLesson(){
 /* ============================================================
    INPUT HANDLING (works with any keyboard incl. OTG)
    ============================================================ */
-const input = document.getElementById('hidden-input');
-
-// Focus the hidden input WITHOUT popping Android's software keyboard.
-// We no longer use inputmode="none" for this, because on many Android
-// devices that attribute also makes the IME swallow hardware/OTG letter
-// keystrokes (only Space/Backspace/Enter got through). Instead we keep
-// the field readonly until the instant after it's focused, then remove
-// readonly — focusing a readonly field never triggers the soft keyboard,
-// but once focus is already established the field accepts a normal
-// (unrestricted) InputConnection, so OTG hardware keys all work.
-function focusInputSafely(){
-  input.setAttribute('readonly', 'readonly');
-  input.focus();
-  setTimeout(()=> input.removeAttribute('readonly'), 100);
-}
-
-document.getElementById('screen-lesson').addEventListener('click', focusInputSafely);
-
-// Only Backspace/Enter need blocking at the keydown level — everything else
-// is handled through the single 'input' event below. Using ONE event source
-// (instead of keydown + input together) avoids the double-count bug where
-// Android's IME layer commits a keystroke separately from the raw keydown,
-// which was causing space presses to register twice.
-// Now that inputmode="none" fully disables the on-screen keyboard, the ONLY
-// input path is the hardware/OTG keyboard. We handle characters exclusively
-// through 'keydown' (the raw physical key, untouched by any IME/predictive
-// engine) and preventDefault so nothing ever reaches the 'input' pipeline —
-// some Android phones run a Bengali/predictive keyboard engine in the
-// background that would otherwise silently alter hardware keystrokes.
-input.addEventListener('keydown', (e)=>{
+// We listen for keydown on the WHOLE DOCUMENT rather than on a hidden
+// <input>. Reasons:
+//  1. A hidden input can silently LOSE FOCUS (screen lock/unlock, app
+//     switching, the phone's own keyboard app doing something in the
+//     background) and once that happens, EVERY key — including space —
+//     stops working until something re-focuses it. Listening on
+//     `document` removes this failure mode entirely: it doesn't matter
+//     what has focus, hardware key presses are still caught.
+//  2. It also sidesteps quirks from third-party keyboard apps (e.g.
+//     Redmi's keyboard, Gboard, etc.) that sit as the phone's system
+//     IME — those apps mainly interfere with focused text fields, not
+//     with document-level key listening.
+//  3. Because nothing ever needs to be focused, the phone's on-screen
+//     keyboard never has a reason to pop up either — same result as
+//     before, but far more reliable.
+document.addEventListener('keydown', (e)=>{
   if(!session) return;
   if(e.key === 'Backspace' || e.key === 'Enter' || e.key === 'Tab'){
     e.preventDefault();
@@ -939,10 +914,7 @@ document.getElementById('reset-btn').addEventListener('click', async ()=>{
    INIT
    ============================================================ */
 document.addEventListener('contextmenu', (e)=> e.preventDefault());
-document.addEventListener('selectstart', (e)=>{
-  if(e.target && e.target.id === 'hidden-input') return; // keep the invisible input functional
-  e.preventDefault();
-});
+document.addEventListener('selectstart', (e)=> e.preventDefault());
 
 (async function init(){
   renderKeyboard();
