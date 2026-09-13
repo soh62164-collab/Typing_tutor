@@ -200,6 +200,12 @@
     align-items:center;
     gap:6px;
   }
+  #hidden-input{
+    position:absolute;
+    opacity:0;
+    height:1px; width:1px;
+    pointer-events:none;
+  }
   .kb-row{ display:flex; gap:6px; }
   .key{
     height:38px;
@@ -319,6 +325,7 @@
     <div id="text-display"></div>
     <div id="finger-hint"></div>
     <div id="keyboard"></div>
+    <input id="hidden-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
   </div>
 
   <!-- RESULT OVERLAY -->
@@ -846,35 +853,70 @@ async function finishLesson(){
 /* ============================================================
    INPUT HANDLING (works with any keyboard incl. OTG)
    ============================================================ */
-// We listen for keydown on the WHOLE DOCUMENT rather than on a hidden
-// <input>. Reasons:
-//  1. A hidden input can silently LOSE FOCUS (screen lock/unlock, app
-//     switching, the phone's own keyboard app doing something in the
-//     background) and once that happens, EVERY key — including space —
-//     stops working until something re-focuses it. Listening on
-//     `document` removes this failure mode entirely: it doesn't matter
-//     what has focus, hardware key presses are still caught.
-//  2. It also sidesteps quirks from third-party keyboard apps (e.g.
-//     Redmi's keyboard, Gboard, etc.) that sit as the phone's system
-//     IME — those apps mainly interfere with focused text fields, not
-//     with document-level key listening.
-//  3. Because nothing ever needs to be focused, the phone's on-screen
-//     keyboard never has a reason to pop up either — same result as
-//     before, but far more reliable.
+// IMPORTANT background on why this looks the way it does:
+// On many Android phones, whatever keyboard APP is set as the phone's
+// default (Redmi Keyboard, Gboard, Samsung Keyboard, etc.) sits between
+// the hardware/OTG keyboard and the webpage. That app runs its own
+// word-prediction/autocorrect engine, and it intercepts LETTER keys to
+// feed that engine — which means the raw 'keydown' event for a letter
+// often arrives as e.key === "Unidentified" instead of the real letter.
+// Non-word keys like Space, comma, and punctuation aren't touched by
+// word-prediction, so they arrive as normal keydown events — which is
+// exactly the pattern reported (space/comma worked, letters didn't).
+//
+// The fix: don't trust keydown for letters. Instead, read the actual
+// character the phone ends up committing, via the 'input' event on a
+// real (but invisible) text field — 'input' always reflects what was
+// truly typed, even after the keyboard app's prediction engine has
+// processed it. We only use 'keydown' for Backspace/Enter/Tab, which
+// don't produce 'input' text.
+
+const hiddenInput = document.getElementById('hidden-input');
+
+// Keep the invisible field focused at all times, without ever popping
+// the on-screen keyboard. Focusing a field that's already `readonly`
+// does not trigger Android's software keyboard; removing `readonly`
+// immediately after establishes a full, ordinary text connection so
+// hardware/OTG keys (and the phone's predictive engine) work normally.
+function focusHiddenInput(){
+  hiddenInput.setAttribute('readonly', 'readonly');
+  hiddenInput.focus();
+  setTimeout(()=> hiddenInput.removeAttribute('readonly'), 50);
+}
+
+// Re-focus on every plausible occasion a focus loss could happen:
+// tapping anywhere, the app coming back to the foreground, or the
+// window regaining focus after switching apps/locking the screen.
+document.addEventListener('click', focusHiddenInput);
+document.addEventListener('touchstart', focusHiddenInput, {passive:true});
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') focusHiddenInput();
+});
+window.addEventListener('focus', focusHiddenInput);
+
+// Safety net: if focus somehow slips away anyway, a watchdog restores
+// it a few times a second while a lesson is in progress.
+setInterval(()=>{
+  if(session && document.activeElement !== hiddenInput) focusHiddenInput();
+}, 400);
+
+// The actual typed characters: read from the 'input' event, which
+// carries the real committed text regardless of any predictive engine.
+hiddenInput.addEventListener('input', ()=>{
+  if(!session){ hiddenInput.value = ''; return; }
+  const typed = hiddenInput.value;
+  hiddenInput.value = ''; // clear immediately so the buffer never grows
+  for(const ch of typed){
+    handleChar(ch.toLowerCase());
+  }
+});
+
+// Control keys only — these don't generate 'input' text, so keydown
+// is the right (and only) place to catch and block them.
 document.addEventListener('keydown', (e)=>{
   if(!session) return;
   if(e.key === 'Backspace' || e.key === 'Enter' || e.key === 'Tab'){
     e.preventDefault();
-    return;
-  }
-  if(e.key === ' '){
-    e.preventDefault();
-    handleChar(' ');
-    return;
-  }
-  if(e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey){
-    e.preventDefault();
-    handleChar(e.key.toLowerCase());
   }
 });
 
@@ -920,6 +962,7 @@ document.addEventListener('selectstart', (e)=> e.preventDefault());
   renderKeyboard();
   await loadProgress();
   renderHome();
+  focusHiddenInput();
 })();
 </script>
 </body>
