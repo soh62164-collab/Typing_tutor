@@ -125,6 +125,7 @@
   .lesson-info .keys{font-size:12px; color:var(--text-muted); margin-top:2px;}
   .lesson-score{font-size:11.5px; color:var(--teal); text-align:right; flex-shrink:0;}
   .lesson-score .wpm-num{font-size:15px; font-weight:700; display:block;}
+  .lesson-score .acc-num{font-size:10.5px; color:var(--amber); display:block; margin-top:2px;}
 
   /* ===== Lesson screen ===== */
   #lesson-header{
@@ -719,7 +720,7 @@ function renderHome(){
           <div class="name">${lsn.name}</div>
           <div class="keys">${subtitle}</div>
         </div>
-        ${done ? `<div class="lesson-score"><span class="wpm-num">${done.wpm}</span>WPM</div>` : ''}
+        ${done ? `<div class="lesson-score"><span class="wpm-num">${done.bestWpm ?? done.wpm}</span>WPM<span class="acc-num">${done.bestAcc ?? done.acc}% নির্ভুল</span></div>` : ''}
       `;
       if(!locked){
         row.addEventListener('click', ()=> openLesson(idx));
@@ -833,9 +834,16 @@ async function finishLesson(){
   playCompleteSound();
   const {wpm, acc} = updateStats();
   const prev = progress.completed[session.lsn.id];
-  if(!prev || wpm > prev.wpm){
-    progress.completed[session.lsn.id] = {wpm, acc, date:Date.now()};
-  }
+  // Track the best WPM run and the best accuracy run independently —
+  // they might not be the same attempt (e.g. a fast-but-sloppy run vs
+  // a slower-but-accurate one), so both deserve to be remembered.
+  const prevBestWpm = prev ? (prev.bestWpm ?? prev.wpm ?? 0) : 0;
+  const prevBestAcc = prev ? (prev.bestAcc ?? prev.acc ?? 0) : 0;
+  progress.completed[session.lsn.id] = {
+    bestWpm: Math.max(wpm, prevBestWpm),
+    bestAcc: Math.max(acc, prevBestAcc),
+    date: Date.now()
+  };
   if(session.idx >= progress.unlockedIndex && session.idx+1 <= FLAT_LESSONS.length){
     progress.unlockedIndex = Math.max(progress.unlockedIndex, session.idx+1);
   }
@@ -902,12 +910,17 @@ setInterval(()=>{
 
 // The actual typed characters: read from the 'input' event, which
 // carries the real committed text regardless of any predictive engine.
+// IMPORTANT: keep the original case here. Sentence/paragraph lessons
+// include real capital letters (start of sentence), and lowercasing
+// everything here would mark every capital letter "wrong" even when
+// correctly typed with Shift — comparison against case stays exact,
+// matching what a real typing tutor should require.
 hiddenInput.addEventListener('input', ()=>{
   if(!session){ hiddenInput.value = ''; return; }
   const typed = hiddenInput.value;
   hiddenInput.value = ''; // clear immediately so the buffer never grows
   for(const ch of typed){
-    handleChar(ch.toLowerCase());
+    handleChar(ch);
   }
 });
 
