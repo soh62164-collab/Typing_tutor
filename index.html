@@ -483,6 +483,27 @@ function sentenceDrill(letters, count=6){
   return sentences.join(' ');
 }
 
+// Hand-written, meaningful sentences (not randomly assembled words) for
+// the "sentence practice" lessons. By this point in the curriculum every
+// letter is already unlocked, so real sentences read naturally.
+const CURATED_SENTENCES = [
+  "The sun rises in the east. Birds sing early in the morning. I like to drink hot tea. My brother plays football every evening. We watch the news at night. Good habits make a good life.",
+  "Reading books can open new worlds. Every student should practice every day. Math can be fun with practice. A good teacher makes learning easy. Hard work always pays off. Never stop learning new things.",
+  "The sky turns orange at sunset. Rain helps the trees grow tall. Rivers flow down from the hills. Flowers bloom best in spring. The forest is home to many animals. Nature gives us peace and joy.",
+  "I wake up early every day. First I brush my teeth and wash my face. Then I eat a healthy breakfast. After that I go to work or school. In the evening I relax with my family. A good routine keeps life simple.",
+  "A true friend stays with you always. Friends share both joy and sorrow. It feels good to help a friend in need. Kind words can heal a broken heart. Trust is the base of every friendship. Good friends make life beautiful.",
+  "Computers have changed the way we live. The internet connects people around the world. Mobile phones make communication very easy. New technology comes out every year. We must use technology in a wise way. Machines can never replace human kindness.",
+  "Drinking enough water keeps the body fresh. Regular exercise builds a strong body. Sleep is important for good health. Fresh fruits give us many vitamins. A healthy mind lives in a healthy body. Small habits create a big change.",
+  "Traveling opens our mind to new ideas. Every city has its own special charm. I love to visit the hills in winter. The beach is calm in the early morning. A good map makes any journey easy. Travel teaches us more than books do.",
+  "Hard work is the key to success. Every job teaches us something new. A good plan saves a lot of time. Team work makes big tasks easy. Never be afraid to ask for help. Success comes to those who keep trying.",
+  "Family is the first school of life. Parents always want the best for us. Sharing meals together builds strong bonds. Grandparents have many stories to tell. A happy home starts with love and care. Family support helps us face hard times.",
+  "Summer days are long and very warm. Winter nights are cold and quiet. Spring brings fresh flowers and green leaves. Autumn leaves fall slowly to the ground. Every season has its own beauty. We should enjoy each season in its own way.",
+  "Saving money is a wise habit to build. Small savings can grow into a big amount. Spend less than what you earn each month. A budget helps you control your expenses. Never borrow more than you can repay. Smart planning brings peace of mind.",
+  "Time is more valuable than money. Every minute we lose never comes back. A daily plan helps us use time well. Do not delay important tasks for later. Focus on one task at a time. Good time management reduces daily stress.",
+  "A small act of kindness can change a day. Smiling at someone can make them happy. Helping others brings peace to our own heart. Kind words cost nothing but mean a lot. We should be kind to every living being. The world needs more kindness today.",
+  "Every big dream starts with a small step. Write down your goals to stay focused. Believe in yourself even when things get hard. Failure is just a part of learning. Keep trying until you reach your goal. Your future depends on what you do today."
+];
+
 function wordListWithPunct(letters, count=32){
   const words = wordsUsingOnly(letters, count, 2, 7);
   if(!words) return null;
@@ -498,6 +519,27 @@ function wordListWithPunct(letters, count=32){
 function paragraphDrill(letters, sentenceCount=10){
   return sentenceDrill(letters, sentenceCount);
 }
+
+// Hand-written short paragraphs, each about one specific topic, for the
+// "paragraph practice" lessons — matched 1:1 with the topic named in
+// each lesson's title above.
+const CURATED_PARAGRAPHS = [
+  "The weather changes with every season. In summer, the sun shines bright and hot. In winter, the air turns cold and dry. Rain falls mostly during the monsoon months. People carry umbrellas to stay dry on rainy days. Weather affects how we dress and plan our day.",
+  "Every morning, I wake up early. First, I brush my teeth and wash my face. Next, I eat a light breakfast with tea. After that, I go to work or study. In the evening, I take some rest and read a book. Before bed, I write down the plan for tomorrow.",
+  "The ocean covers most of the surface of the earth. It is home to millions of different creatures. Waves rise and fall along the shore every day. Ships travel across the ocean carrying goods and people. The ocean also gives us food and fresh air. We must protect the ocean from pollution and waste.",
+  "Books can take us to places we have never seen. A good story can teach us lessons about life. Reading every day improves our vocabulary and thinking. Libraries are quiet places full of knowledge and ideas. Children should be encouraged to read from a young age. A book is often a very good friend.",
+  "Trees give us oxygen and clean the air we breathe. Forests are home to countless birds and animals. Cutting down too many trees harms the whole environment. Planting new trees helps balance the natural world. Green forests also help control the local climate. We should plant more trees every single year.",
+  "Technology has changed the way people live and work. Phones and computers help us stay connected with others. Online classes now allow students to learn from home. Many jobs today depend fully on digital tools. New technology also brings some risks and challenges. We should use technology with care and balance.",
+  "A healthy lifestyle starts with good daily habits. Eating fresh food gives the body needed energy. Regular exercise keeps the heart and muscles strong. Enough sleep helps the mind stay sharp and calm. Drinking clean water is important every single day. Small healthy choices add up over time.",
+  "Time is one thing we can never get back. Every person gets the same twenty four hours each day. Some people use their time wisely and achieve great things. Others waste time and later feel much regret. Planning our day can help us use time better. Value every hour as much as you can.",
+  "A good friend stands beside us in every situation. Friends share happy moments and support each other in hard times. Trust and honesty build a strong friendship over the years. A true friend never judges us for our mistakes. Keeping in touch with old friends brings great joy. Friendship is truly one of the best gifts in life.",
+  "Water is essential for every living being on earth. Our body needs water to work properly each day. Rivers, lakes, and rain are the main sources of fresh water. Many parts of the world still lack clean water. Saving water is the duty of every single person. We must never waste this precious natural resource.",
+  "Village life is often slow, quiet, and peaceful. Most people in a village work in the fields. Fresh air and green land are common in every village. Neighbors in a village know and help each other. Life in a village follows the rhythm of the seasons. Many people find village life simple and calming.",
+  "City life is busy, fast, and full of activity. Tall buildings and crowded roads are common in every city. People in the city often work long hours each day. Public transport helps people move around a big city. Cities also offer many schools, shops, and hospitals. Life in the city never seems to slow down.",
+  "Small acts of kindness can brighten an entire day for someone. Helping a stranger costs nothing but means a great deal. A kind word can lift a heart that feels heavy. Sharing what we have teaches our children great values. The world becomes better when people care for each other. Kindness truly is a language everyone can understand.",
+  "Every person carries a dream inside their heart. Big dreams often start with one small and simple step. Setting clear goals helps turn a dream into a plan. Hard work and patience are needed to reach any goal. Failure along the way is simply a part of growth. Never stop working toward the life you imagine.",
+  "Nature moves through four seasons every single year. Spring brings new leaves, flowers, and gentle warm air. Summer arrives with long days and strong bright sunlight. Autumn paints the leaves in orange, red, and brown. Winter covers the land in cold air and short days. Each season offers its own kind of natural beauty."
+];
 
 /* ============================================================
    LESSON CURRICULUM
@@ -542,24 +584,38 @@ const STAGES = [
     { id:'wl8', name:'শব্দ-তালিকা ৮', newKeys:[], type:'wordlist' },
   ]},
   { title:"বাক্য অনুশীলন", lessons:[
-    { id:'s1', name:'বাক্য অনুশীলন ১', newKeys:[], type:'sentence' },
-    { id:'s2', name:'বাক্য অনুশীলন ২', newKeys:[], type:'sentence' },
-    { id:'s3', name:'বাক্য অনুশীলন ৩', newKeys:[], type:'sentence' },
-    { id:'s4', name:'বাক্য অনুশীলন ৪', newKeys:[], type:'sentence' },
-    { id:'s5', name:'বাক্য অনুশীলন ৫', newKeys:[], type:'sentence' },
-    { id:'s6', name:'বাক্য অনুশীলন ৬', newKeys:[], type:'sentence' },
-    { id:'s7', name:'বাক্য অনুশীলন ৭', newKeys:[], type:'sentence' },
-    { id:'s8', name:'বাক্য অনুশীলন ৮', newKeys:[], type:'sentence' },
+    { id:'s1', name:'বাক্য অনুশীলন ১', newKeys:[], type:'sentence', set:0 },
+    { id:'s2', name:'বাক্য অনুশীলন ২', newKeys:[], type:'sentence', set:1 },
+    { id:'s3', name:'বাক্য অনুশীলন ৩', newKeys:[], type:'sentence', set:2 },
+    { id:'s4', name:'বাক্য অনুশীলন ৪', newKeys:[], type:'sentence', set:3 },
+    { id:'s5', name:'বাক্য অনুশীলন ৫', newKeys:[], type:'sentence', set:4 },
+    { id:'s6', name:'বাক্য অনুশীলন ৬', newKeys:[], type:'sentence', set:5 },
+    { id:'s7', name:'বাক্য অনুশীলন ৭', newKeys:[], type:'sentence', set:6 },
+    { id:'s8', name:'বাক্য অনুশীলন ৮', newKeys:[], type:'sentence', set:7 },
+    { id:'s9', name:'বাক্য অনুশীলন ৯', newKeys:[], type:'sentence', set:8 },
+    { id:'s10', name:'বাক্য অনুশীলন ১০', newKeys:[], type:'sentence', set:9 },
+    { id:'s11', name:'বাক্য অনুশীলন ১১', newKeys:[], type:'sentence', set:10 },
+    { id:'s12', name:'বাক্য অনুশীলন ১২', newKeys:[], type:'sentence', set:11 },
+    { id:'s13', name:'বাক্য অনুশীলন ১৩', newKeys:[], type:'sentence', set:12 },
+    { id:'s14', name:'বাক্য অনুশীলন ১৪', newKeys:[], type:'sentence', set:13 },
+    { id:'s15', name:'বাক্য অনুশীলন ১৫', newKeys:[], type:'sentence', set:14 },
   ]},
   { title:"প্যারাগ্রাফ অনুশীলন", lessons:[
-    { id:'p1', name:'প্যারাগ্রাফ ১', newKeys:[], type:'paragraph' },
-    { id:'p2', name:'প্যারাগ্রাফ ২', newKeys:[], type:'paragraph' },
-    { id:'p3', name:'প্যারাগ্রাফ ৩', newKeys:[], type:'paragraph' },
-    { id:'p4', name:'প্যারাগ্রাফ ৪', newKeys:[], type:'paragraph' },
-    { id:'p5', name:'প্যারাগ্রাফ ৫', newKeys:[], type:'paragraph' },
-    { id:'p6', name:'প্যারাগ্রাফ ৬', newKeys:[], type:'paragraph' },
-    { id:'p7', name:'প্যারাগ্রাফ ৭', newKeys:[], type:'paragraph' },
-    { id:'p8', name:'প্যারাগ্রাফ ৮', newKeys:[], type:'paragraph' },
+    { id:'p1', name:'প্যারাগ্রাফ ১ (আবহাওয়া)', newKeys:[], type:'paragraph', set:0 },
+    { id:'p2', name:'প্যারাগ্রাফ ২ (দৈনন্দিন রুটিন)', newKeys:[], type:'paragraph', set:1 },
+    { id:'p3', name:'প্যারাগ্রাফ ৩ (সমুদ্র)', newKeys:[], type:'paragraph', set:2 },
+    { id:'p4', name:'প্যারাগ্রাফ ৪ (বই ও পড়াশোনা)', newKeys:[], type:'paragraph', set:3 },
+    { id:'p5', name:'প্যারাগ্রাফ ৫ (গাছ ও বন)', newKeys:[], type:'paragraph', set:4 },
+    { id:'p6', name:'প্যারাগ্রাফ ৬ (আজকের প্রযুক্তি)', newKeys:[], type:'paragraph', set:5 },
+    { id:'p7', name:'প্যারাগ্রাফ ৭ (সুস্থ জীবনযাপন)', newKeys:[], type:'paragraph', set:6 },
+    { id:'p8', name:'প্যারাগ্রাফ ৮ (সময়ের মূল্য)', newKeys:[], type:'paragraph', set:7 },
+    { id:'p9', name:'প্যারাগ্রাফ ৯ (বন্ধুত্ব)', newKeys:[], type:'paragraph', set:8 },
+    { id:'p10', name:'প্যারাগ্রাফ ১০ (পানির গুরুত্ব)', newKeys:[], type:'paragraph', set:9 },
+    { id:'p11', name:'প্যারাগ্রাফ ১১ (গ্রামের জীবন)', newKeys:[], type:'paragraph', set:10 },
+    { id:'p12', name:'প্যারাগ্রাফ ১২ (শহরের জীবন)', newKeys:[], type:'paragraph', set:11 },
+    { id:'p13', name:'প্যারাগ্রাফ ১৩ (সদয়তা ও মানবতা)', newKeys:[], type:'paragraph', set:12 },
+    { id:'p14', name:'প্যারাগ্রাফ ১৪ (স্বপ্ন ও লক্ষ্য)', newKeys:[], type:'paragraph', set:13 },
+    { id:'p15', name:'প্যারাগ্রাফ ১৫ (প্রকৃতি ও ঋতু)', newKeys:[], type:'paragraph', set:14 },
   ]},
 ];
 
@@ -590,13 +646,13 @@ function generateLessonText(lsn){
     return numberDrill(lsn.newKeys);
   }
   if(lsn.type==='sentence'){
-    return sentenceDrill(lsn.newKeys, 6) || wordsUsingOnly(lsn.newKeys, 24);
+    return CURATED_SENTENCES[lsn.set] || sentenceDrill(lsn.newKeys, 6) || wordsUsingOnly(lsn.newKeys, 24);
   }
   if(lsn.type==='wordlist'){
     return wordListWithPunct(lsn.newKeys, 34) || wordsUsingOnly(lsn.newKeys, 24);
   }
   if(lsn.type==='paragraph'){
-    return paragraphDrill(lsn.newKeys, 10) || sentenceDrill(lsn.newKeys, 6);
+    return CURATED_PARAGRAPHS[lsn.set] || paragraphDrill(lsn.newKeys, 10) || sentenceDrill(lsn.newKeys, 6);
   }
   return '';
 }
