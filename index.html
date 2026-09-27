@@ -278,6 +278,39 @@
   .btn.primary{ background:var(--amber); color:#2a1a00; }
   .btn.ghost{ background:none; color:var(--text-muted); border:1px solid var(--border); }
 
+  /* ===== Backup overlay ===== */
+  #backup-overlay{
+    position:absolute; inset:0;
+    background:rgba(15,17,22,0.92);
+    display:none;
+    align-items:center; justify-content:center;
+    padding:24px;
+    z-index:20;
+  }
+  #backup-overlay.open{display:flex;}
+  #backup-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:24px 20px;
+    width:100%;
+    max-width:340px;
+  }
+  #backup-card h2{font-size:17px; margin-bottom:10px;}
+  #backup-desc{font-size:12.5px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;}
+  #backup-text{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    color:var(--text);
+    font-size:12px;
+    padding:10px;
+    margin-bottom:14px;
+    font-family: ui-monospace, monospace;
+    resize:none;
+  }
+
   #reset-row{
     padding:16px 18px 26px;
     flex-shrink:0;
@@ -306,7 +339,21 @@
     </div>
     <div id="stage-list"></div>
     <div id="reset-row">
+      <button id="backup-btn" class="btn ghost" style="margin-bottom:8px;">📋 প্রগ্রেস ব্যাকআপ কপি করুন</button>
+      <button id="restore-btn" class="btn ghost" style="margin-bottom:8px;">📥 ব্যাকআপ থেকে ফিরিয়ে আনুন</button>
       <button id="reset-btn">সব অগ্রগতি মুছে নতুন করে শুরু করুন</button>
+    </div>
+  </div>
+
+  <!-- BACKUP OVERLAY -->
+  <div id="backup-overlay">
+    <div id="backup-card">
+      <h2 id="backup-title">ব্যাকআপ কোড</h2>
+      <p id="backup-desc">এই কোডটুকু কপি করে কোথাও (নোট, মেসেঞ্জারে নিজেকে) সেভ করে রাখুন। পরে প্রগ্রেস হারিয়ে গেলে এখানে পেস্ট করে ফিরিয়ে আনতে পারবেন।</p>
+      <textarea id="backup-text" rows="4"></textarea>
+      <button class="btn primary" id="backup-copy-btn">কপি করুন</button>
+      <button class="btn primary" id="backup-restore-confirm-btn" style="display:none;">ফিরিয়ে আনুন</button>
+      <button class="btn ghost" id="backup-close-btn">বন্ধ করুন</button>
     </div>
   </div>
 
@@ -1019,6 +1066,73 @@ document.getElementById('reset-btn').addEventListener('click', async ()=>{
   progress = { completed:{}, unlockedIndex:0 };
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
   renderHome();
+});
+
+/* ============================================================
+   PROGRESS BACKUP / RESTORE
+   ============================================================
+   Safety net for when a phone's browser clears site storage on its
+   own (common on Android when storage runs low) — lets the person
+   keep an external copy of their progress and paste it back in. */
+const backupOverlay = document.getElementById('backup-overlay');
+const backupText = document.getElementById('backup-text');
+const backupDesc = document.getElementById('backup-desc');
+const backupTitle = document.getElementById('backup-title');
+const backupCopyBtn = document.getElementById('backup-copy-btn');
+const backupRestoreConfirmBtn = document.getElementById('backup-restore-confirm-btn');
+
+document.getElementById('backup-btn').addEventListener('click', ()=>{
+  backupTitle.textContent = 'ব্যাকআপ কোড';
+  backupDesc.textContent = 'এই কোডটুকু কপি করে কোথাও (নোট, মেসেঞ্জারে নিজেকে) সেভ করে রাখুন। পরে প্রগ্রেস হারিয়ে গেলে "ব্যাকআপ থেকে ফিরিয়ে আনুন" চেপে এখানে পেস্ট করবেন।';
+  backupText.value = JSON.stringify(progress);
+  backupText.readOnly = true;
+  backupCopyBtn.style.display = 'block';
+  backupRestoreConfirmBtn.style.display = 'none';
+  backupOverlay.classList.add('open');
+});
+
+document.getElementById('restore-btn').addEventListener('click', ()=>{
+  backupTitle.textContent = 'ব্যাকআপ ফিরিয়ে আনুন';
+  backupDesc.textContent = 'আগে কপি করে রাখা ব্যাকআপ কোডটা এখানে পেস্ট করুন, তারপর "ফিরিয়ে আনুন" চাপুন।';
+  backupText.value = '';
+  backupText.readOnly = false;
+  backupCopyBtn.style.display = 'none';
+  backupRestoreConfirmBtn.style.display = 'block';
+  backupOverlay.classList.add('open');
+  backupText.focus();
+});
+
+backupCopyBtn.addEventListener('click', async ()=>{
+  backupText.select();
+  try{
+    await navigator.clipboard.writeText(backupText.value);
+    backupCopyBtn.textContent = 'কপি হয়েছে ✓';
+    setTimeout(()=> backupCopyBtn.textContent = 'কপি করুন', 1500);
+  }catch(e){
+    // Clipboard API blocked — the text is already selected, so the
+    // person can still copy it manually with a long-press.
+  }
+});
+
+backupRestoreConfirmBtn.addEventListener('click', async ()=>{
+  try{
+    const parsed = JSON.parse(backupText.value.trim());
+    if(!parsed || typeof parsed !== 'object' || !('completed' in parsed) || !('unlockedIndex' in parsed)){
+      throw new Error('invalid shape');
+    }
+    progress = parsed;
+    await saveProgress();
+    renderHome();
+    backupOverlay.classList.remove('open');
+  }catch(e){
+    backupDesc.textContent = 'এই কোডটা ঠিক নেই — আগে কপি করা পুরো কোডটা হুবহু পেস্ট করেছেন কিনা দেখুন।';
+    backupDesc.style.color = 'var(--coral)';
+  }
+});
+
+document.getElementById('backup-close-btn').addEventListener('click', ()=>{
+  backupOverlay.classList.remove('open');
+  backupDesc.style.color = '';
 });
 
 /* ============================================================
