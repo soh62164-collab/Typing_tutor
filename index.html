@@ -309,6 +309,41 @@
     resize:none;
   }
 
+  #weak-card{
+    margin:0 18px 6px;
+  }
+  #weak-card .inner{
+    background:var(--surface-2);
+    border:1px solid var(--amber);
+    border-radius:12px;
+    padding:14px 16px;
+  }
+  #weak-card .inner .title{
+    font-weight:700;
+    font-size:14px;
+    margin-bottom:4px;
+  }
+  #weak-card .inner .desc{
+    font-size:12.5px;
+    color:var(--text-muted);
+    margin-bottom:10px;
+  }
+  #weak-card .inner .keys{
+    font-size:15px;
+    letter-spacing:2px;
+    color:var(--amber);
+    margin-bottom:10px;
+  }
+  #weak-card button{
+    width:100%;
+    padding:10px;
+    border-radius:9px;
+    border:none;
+    background:var(--amber);
+    color:#2a1a00;
+    font-weight:700;
+  }
+
   #reset-row{
     padding:16px 18px 26px;
     flex-shrink:0;
@@ -335,6 +370,7 @@
       <p>ধাপে ধাপে অনুশীলন করে টাচ-টাইপিং শিখুন — সম্পূর্ণ অফলাইনে</p>
       <p style="margin-top:6px; color:var(--amber); font-size:12px;">⌨️ OTG কীবোর্ড সংযুক্ত রাখুন — autocorrect এড়াতে ফোনের নিজস্ব ভার্চুয়াল কীবোর্ড বন্ধ রাখা হয়েছে</p>
     </div>
+    <div id="weak-card"></div>
     <div id="stage-list"></div>
     <div id="reset-row">
       <button id="backup-btn" class="btn ghost" style="margin-bottom:8px;">📋 প্রগ্রেস ব্যাকআপ কপি করুন</button>
@@ -779,6 +815,7 @@ async function loadProgress(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw) progress = JSON.parse(raw);
   }catch(e){ /* no saved progress yet */ }
+  if(!progress.charStats) progress.charStats = {}; // older saves won't have this yet
 }
 async function saveProgress(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); }
@@ -788,7 +825,27 @@ async function saveProgress(){
 /* ============================================================
    HOME SCREEN RENDER
    ============================================================ */
+function renderWeakCard(){
+  const card = document.getElementById('weak-card');
+  const weak = getWeakKeys();
+  if(weak.length === 0){
+    card.innerHTML = '';
+    return;
+  }
+  const shown = weak.map(k => k===' ' ? 'স্পেস' : k.toUpperCase()).join('  ');
+  card.innerHTML = `
+    <div class="inner">
+      <div class="title">🎯 দুর্বল জায়গা অনুশীলন</div>
+      <div class="desc">আগের লেসনগুলোতে এই কী-গুলোতে সবচেয়ে বেশি ভুল হয়েছে — এগুলো নিয়ে একটা ছোট অনুশীলন করে নিন।</div>
+      <div class="keys">${shown}</div>
+      <button id="weak-practice-btn">এখনই অনুশীলন করুন</button>
+    </div>
+  `;
+  document.getElementById('weak-practice-btn').addEventListener('click', openWeakPractice);
+}
+
 function renderHome(){
+  renderWeakCard();
   const list = document.getElementById('stage-list');
   list.innerHTML = '';
   let flatIndex = 0;
@@ -857,6 +914,48 @@ function openLesson(idx){
   highlightKey(nextCh, 'next');
 }
 
+/* ============================================================
+   WEAK-KEY PRACTICE
+   ============================================================
+   Looks at the per-key mistake stats gathered in handleChar() across
+   every lesson ever attempted, and builds a fresh drill focused on
+   whichever keys are actually giving this person the most trouble —
+   independent of which numbered lesson they're on. */
+const WEAK_MIN_SEEN = 12;   // ignore a key until we've seen it enough times to trust the rate
+const WEAK_MAX_KEYS = 8;
+
+function getWeakKeys(){
+  const stats = progress.charStats || {};
+  return Object.keys(stats)
+    .map(ch => ({ch, seen:stats[ch].seen, wrong:stats[ch].wrong, rate: stats[ch].wrong/stats[ch].seen}))
+    .filter(s => s.seen >= WEAK_MIN_SEEN && s.wrong > 0)
+    .sort((a,b) => b.rate - a.rate || b.wrong - a.wrong)
+    .slice(0, WEAK_MAX_KEYS)
+    .map(s => s.ch);
+}
+
+function openWeakPractice(){
+  const weak = getWeakKeys();
+  if(weak.length === 0) return;
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'.split('').concat([' ',',','.']);
+  const text = drillText(weak, alphabet, 22);
+  session = {
+    idx: -1,
+    lsn: { id:'weak-practice', name:'দুর্বল জায়গা অনুশীলন', newKeys: weak },
+    text, pos:0, mistakes:0, totalTyped:0, startTime:null,
+    special: 'weak',
+  };
+  document.getElementById('lesson-title').textContent = 'দুর্বল জায়গা অনুশীলন';
+  document.getElementById('lesson-keys-badge').textContent = weak.join(' ').toUpperCase();
+  renderText();
+  updateStats();
+  showScreen('screen-lesson');
+  const hint = document.getElementById('finger-hint');
+  const nextCh = session.text[0];
+  hint.innerHTML = `পরের কী চাপুন: <b>${nextCh===' '?'স্পেস':nextCh.toUpperCase()}</b> — ${FINGER_NAME[FINGER_MAP[nextCh.toLowerCase()]||'thumb']}`;
+  highlightKey(nextCh, 'next');
+}
+
 function renderText(){
   const disp = document.getElementById('text-display');
   disp.innerHTML = '';
@@ -904,12 +1003,20 @@ function handleChar(typed){
   const span = document.querySelectorAll('#text-display .ch')[session.pos];
   span.classList.remove('current');
 
+  // Track per-key accuracy (case-folded, since it's the same physical key)
+  // so we can later find the person's weakest keys and build a focused
+  // drill for them, regardless of which lesson they're currently on.
+  const statKey = expected === ' ' ? ' ' : expected.toLowerCase();
+  const cs = progress.charStats[statKey] || (progress.charStats[statKey] = {seen:0, wrong:0});
+  cs.seen++;
+
   if(typed === expected){
     span.classList.add('correct');
     playKeySound();
   } else {
     span.classList.add('wrong'); // stays marked — this position is permanently a mistake
     session.mistakes++;
+    cs.wrong++;
     playErrorSound();
   }
   session.totalTyped++;
@@ -934,6 +1041,20 @@ function handleChar(typed){
 async function finishLesson(){
   playCompleteSound();
   const {wpm, acc} = updateStats();
+
+  if(session.special === 'weak'){
+    // Not a numbered lesson — just persist the updated charStats and
+    // show a result screen with no "next lesson" to advance to.
+    await saveProgress();
+    document.getElementById('result-wpm').textContent = wpm;
+    document.getElementById('result-acc').textContent = acc + '%';
+    document.getElementById('result-title').textContent =
+      acc >= 95 ? 'চমৎকার হয়েছে! 🎉' : (acc >= 80 ? 'ভালো হয়েছে!' : 'আরেকবার চেষ্টা করলে ভালো হবে');
+    document.getElementById('result-next').style.display = 'none';
+    document.getElementById('result-overlay').classList.add('open');
+    return;
+  }
+
   const prev = progress.completed[session.lsn.id];
   // Track the best WPM run and the best accuracy run independently —
   // they might not be the same attempt (e.g. a fast-but-sloppy run vs
@@ -1051,7 +1172,8 @@ document.getElementById('back-btn').addEventListener('click', ()=>{
 
 document.getElementById('result-retry').addEventListener('click', ()=>{
   document.getElementById('result-overlay').classList.remove('open');
-  openLesson(session.idx);
+  if(session.special === 'weak') openWeakPractice();
+  else openLesson(session.idx);
 });
 
 document.getElementById('result-next').addEventListener('click', ()=>{
@@ -1061,7 +1183,7 @@ document.getElementById('result-next').addEventListener('click', ()=>{
 });
 
 document.getElementById('reset-btn').addEventListener('click', async ()=>{
-  progress = { completed:{}, unlockedIndex:0 };
+  progress = { completed:{}, unlockedIndex:0, charStats:{} };
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
   renderHome();
 });
@@ -1119,6 +1241,7 @@ backupRestoreConfirmBtn.addEventListener('click', async ()=>{
       throw new Error('invalid shape');
     }
     progress = parsed;
+    if(!progress.charStats) progress.charStats = {}; // backups made before this feature existed
     await saveProgress();
     renderHome();
     backupOverlay.classList.remove('open');
